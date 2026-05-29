@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"log"
+
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
 	"Distribyte/backend/services"
@@ -56,6 +58,8 @@ func UploadFile(c *gin.Context) {
 		"message": "File uploaded successfully",
 		"data":    fileData,
 	})
+
+	log.Println("File uploaded:", filename)
 }
 
 func GetFiles(c *gin.Context) {
