@@ -9,6 +9,7 @@ import (
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
 	"Distribyte/backend/services"
+	"Distribyte/backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,8 +27,9 @@ func UploadFile(c *gin.Context) {
 	}
 
 	filename := filepath.Base(file.Filename)
+	storedName := utils.GenerateStoredName(filename)
 
-	savePath := "../storage/" + filename
+	savePath := "../storage/" + storedName
 
 	err = c.SaveUploadedFile(file, savePath)
 
@@ -41,6 +43,7 @@ func UploadFile(c *gin.Context) {
 
 	fileData, err := services.SaveFileMetadata(
 		filename,
+		storedName,
 		savePath,
 		file.Size,
 	)
@@ -88,7 +91,8 @@ func GetFiles(c *gin.Context) {
 
 		err := rows.Scan(
 			&file.ID,
-			&file.Filename,
+			&file.OriginalName,
+			&file.StoredName,
 			&file.Filepath,
 			&file.Size,
 			&file.UploadedAt,
