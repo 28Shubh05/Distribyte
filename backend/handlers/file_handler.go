@@ -80,9 +80,16 @@ func UploadFile(c *gin.Context) {
 func GetFiles(c *gin.Context) {
 
 	rows, err := database.DB.Query(`
-		SELECT id, filename, filepath, size, uploaded_at
-		FROM files
-		ORDER BY uploaded_at DESC
+    	SELECT
+    	    id,
+    	    original_name,
+    	    stored_name,
+    	    filepath,
+    	    size,
+    	    file_hash,
+    	    uploaded_at
+    	FROM files
+    	ORDER BY uploaded_at DESC
 	`)
 
 	if err != nil {
@@ -107,6 +114,7 @@ func GetFiles(c *gin.Context) {
 			&file.StoredName,
 			&file.Filepath,
 			&file.Size,
+			&file.FileHash,
 			&file.UploadedAt,
 		)
 
