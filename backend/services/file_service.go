@@ -10,17 +10,19 @@ func SaveFileMetadata(
 	storedName string,
 	savePath string,
 	size int64,
+	fileHash string,
 ) (models.File, error) {
 
 	query := `
-	INSERT INTO files (
-    original_name,
-    stored_name,
-    filepath,
-    size
-)
-VALUES ($1,$2,$3,$4)
-RETURNING id, uploaded_at
+		INSERT INTO files (
+    	original_name,
+    	stored_name,
+    	filepath,
+    	size,
+    	file_hash
+	)
+	VALUES ($1,$2,$3,$4,$5)
+	RETURNING id, uploaded_at
 	`
 
 	var file models.File
@@ -31,6 +33,7 @@ RETURNING id, uploaded_at
 		storedName,
 		savePath,
 		size,
+		fileHash,
 	).Scan(
 		&file.ID,
 		&file.UploadedAt,
@@ -44,6 +47,7 @@ RETURNING id, uploaded_at
 	file.StoredName = storedName
 	file.Filepath = savePath
 	file.Size = size
+	file.FileHash = fileHash
 
 	return file, nil
 }

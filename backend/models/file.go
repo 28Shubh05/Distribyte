@@ -6,5 +6,6 @@ type File struct {
 	StoredName   string `json:"stored_name"`
 	Filepath     string `json:"filepath"`
 	Size         int64  `json:"size"`
+	FileHash     string `json:"file_hash"`
 	UploadedAt   string `json:"uploaded_at"`
 }

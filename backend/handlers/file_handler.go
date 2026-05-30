@@ -44,11 +44,20 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	hash, err := utils.GenerateSHA256(savePath)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println("SHA256:", hash)
+
 	fileData, err := services.SaveFileMetadata(
 		filename,
 		storedName,
 		savePath,
 		file.Size,
+		hash,
 	)
 
 	if err != nil {
