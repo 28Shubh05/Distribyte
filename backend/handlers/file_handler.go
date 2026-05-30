@@ -19,9 +19,12 @@ func UploadFile(c *gin.Context) {
 	file, err := c.FormFile("file")
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+
+		log.Println("DB ERROR:", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   "File upload failed",
+			"error":   err.Error(),
 		})
 		return
 	}
