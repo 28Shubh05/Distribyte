@@ -22,6 +22,8 @@ func SetupRoutes(router *gin.Engine) {
 
 	router.DELETE("/files/:id", handlers.DeleteFile)
 
+	router.POST("/restore/:id", handlers.RestoreFile)
+
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "healthy",

@@ -20,6 +20,17 @@ func UploadFile(c *gin.Context) {
 
 	file, err := c.FormFile("file")
 
+	if err != nil {
+
+		log.Println("DB ERROR:", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
 	if file.Size > config.MaxFileSize {
 
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -34,17 +45,6 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Unsupported file type",
-		})
-		return
-	}
-
-	if err != nil {
-
-		log.Println("DB ERROR:", err)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
 		})
 		return
 	}
@@ -128,6 +128,7 @@ func GetFiles(c *gin.Context) {
     	    file_hash,
     	    uploaded_at
     	FROM files
+		WHERE is_deleted = FALSE
     	ORDER BY uploaded_at DESC
 	`)
 
@@ -194,37 +195,45 @@ func DeleteFile(c *gin.Context) {
 
 	id := c.Param("id")
 
-	file, err := services.GetFileByID(id)
+	// Verify file exists
+	_, err := services.GetFileByID(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "File not found",
+		})
+		return
+	}
+
+	// Soft delete metadata
+	err = services.SoftDeleteFile(id)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to delete file",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "File deleted successfully",
+	})
+}
+
+func RestoreFile(c *gin.Context) {
+
+	id := c.Param("id")
+
+	err := services.RestoreFile(id)
 
 	if err != nil {
 
 		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
-			"error":   "File not found",
-		})
-
-		return
-	}
-
-	err = os.Remove(file.Filepath)
-
-	if err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to delete file from storage",
-		})
-
-		return
-	}
-
-	err = services.DeleteFileMetadata(id)
-
-	if err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to delete metadata",
+			"error":   err.Error(),
 		})
 
 		return
@@ -232,6 +241,6 @@ func DeleteFile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "File deleted successfully",
+		"message": "File restored successfully",
 	})
 }

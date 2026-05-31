@@ -3,6 +3,7 @@ package services
 import (
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
+	"errors"
 )
 
 func SaveFileMetadata(
@@ -83,6 +84,7 @@ func GetFileByID(id string) (models.File, error) {
 		uploaded_at
 	FROM files
 	WHERE id = $1
+	AND is_deleted = FALSE
 	`
 
 	err := database.DB.QueryRow(
@@ -114,4 +116,54 @@ func DeleteFileMetadata(id string) error {
 	)
 
 	return err
+}
+
+func SoftDeleteFile(id string) error {
+
+	query := `
+	UPDATE files
+	SET
+		is_deleted = TRUE,
+		deleted_at = NOW()
+	WHERE id = $1
+	`
+
+	_, err := database.DB.Exec(
+		query,
+		id,
+	)
+
+	return err
+}
+
+func RestoreFile(id string) error {
+
+	query := `
+	UPDATE files
+	SET
+		is_deleted = FALSE,
+		deleted_at = NULL
+	WHERE id = $1
+	`
+
+	result, err := database.DB.Exec(
+		query,
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("file not found")
+	}
+
+	return nil
 }
