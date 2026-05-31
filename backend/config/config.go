@@ -6,6 +6,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	MaxFileSize = 10 * 1024 * 1024 // 10 MB
+)
+
 func LoadEnv() {
 
 	err := godotenv.Load("../.env")

@@ -20,6 +20,8 @@ func SetupRoutes(router *gin.Engine) {
 
 	router.GET("/download/:id", handlers.DownloadFile)
 
+	router.DELETE("/files/:id", handlers.DeleteFile)
+
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "healthy",

@@ -100,3 +100,18 @@ func GetFileByID(id string) (models.File, error) {
 
 	return file, err
 }
+
+func DeleteFileMetadata(id string) error {
+
+	query := `
+	DELETE FROM files
+	WHERE id = $1
+	`
+
+	_, err := database.DB.Exec(
+		query,
+		id,
+	)
+
+	return err
+}

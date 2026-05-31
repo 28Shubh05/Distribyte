@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"Distribyte/backend/config"
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
 	"Distribyte/backend/services"
@@ -18,6 +19,24 @@ import (
 func UploadFile(c *gin.Context) {
 
 	file, err := c.FormFile("file")
+
+	if file.Size > config.MaxFileSize {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "File exceeds maximum size limit (10 MB)",
+		})
+		return
+	}
+
+	if !utils.IsAllowedFileType(file.Filename) {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Unsupported file type",
+		})
+		return
+	}
 
 	if err != nil {
 
@@ -169,4 +188,50 @@ func DownloadFile(c *gin.Context) {
 		file.Filepath,
 		file.OriginalName,
 	)
+}
+
+func DeleteFile(c *gin.Context) {
+
+	id := c.Param("id")
+
+	file, err := services.GetFileByID(id)
+
+	if err != nil {
+
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "File not found",
+		})
+
+		return
+	}
+
+	err = os.Remove(file.Filepath)
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to delete file from storage",
+		})
+
+		return
+	}
+
+	err = services.DeleteFileMetadata(id)
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to delete metadata",
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "File deleted successfully",
+	})
 }
