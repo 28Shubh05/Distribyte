@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"log"
+	"os"
 
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
@@ -45,6 +46,25 @@ func UploadFile(c *gin.Context) {
 	}
 
 	hash, err := utils.GenerateSHA256(savePath)
+
+	exists, err := services.HashExists(hash)
+
+	if exists {
+		os.Remove(savePath)
+		c.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"error":   "Duplicate file detected",
+		})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Duplicate check failed",
+		})
+		return
+	}
 
 	if err != nil {
 		log.Println(err)

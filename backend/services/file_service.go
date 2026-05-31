@@ -51,3 +51,19 @@ func SaveFileMetadata(
 
 	return file, nil
 }
+
+func HashExists(hash string) (bool, error) {
+
+	var count int
+
+	err := database.DB.QueryRow(
+		"SELECT COUNT(*) FROM files WHERE file_hash=$1",
+		hash,
+	).Scan(&count)
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
