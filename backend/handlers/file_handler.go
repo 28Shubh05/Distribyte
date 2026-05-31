@@ -150,3 +150,23 @@ func GetFiles(c *gin.Context) {
 		"files":   files,
 	})
 }
+
+func DownloadFile(c *gin.Context) {
+
+	id := c.Param("id")
+
+	file, err := services.GetFileByID(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "File not found",
+		})
+		return
+	}
+
+	c.FileAttachment(
+		file.Filepath,
+		file.OriginalName,
+	)
+}

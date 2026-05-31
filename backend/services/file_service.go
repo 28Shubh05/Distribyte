@@ -67,3 +67,36 @@ func HashExists(hash string) (bool, error) {
 
 	return count > 0, nil
 }
+
+func GetFileByID(id string) (models.File, error) {
+
+	var file models.File
+
+	query := `
+	SELECT
+		id,
+		original_name,
+		stored_name,
+		filepath,
+		size,
+		file_hash,
+		uploaded_at
+	FROM files
+	WHERE id = $1
+	`
+
+	err := database.DB.QueryRow(
+		query,
+		id,
+	).Scan(
+		&file.ID,
+		&file.OriginalName,
+		&file.StoredName,
+		&file.Filepath,
+		&file.Size,
+		&file.FileHash,
+		&file.UploadedAt,
+	)
+
+	return file, err
+}
