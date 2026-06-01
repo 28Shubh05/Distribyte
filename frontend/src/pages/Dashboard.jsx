@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import UploadForm from "../components/UploadForm";
 
 function Dashboard() {
   const [files, setFiles] = useState([]);
-
-  useEffect(() => {
-    fetchFiles();
-  }, []);
 
   const fetchFiles = async () => {
     try {
@@ -17,8 +14,17 @@ function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
   return (
     <div>
+
+      <UploadForm
+        onUploadSuccess={fetchFiles}
+      />
+
       <h2>Stored Files</h2>
 
       {files.map((file) => (
@@ -26,6 +32,7 @@ function Dashboard() {
           <p>{file.original_name}</p>
         </div>
       ))}
+
     </div>
   );
 }
