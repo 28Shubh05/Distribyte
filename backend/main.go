@@ -5,6 +5,7 @@ import (
 	"Distribyte/backend/database"
 	"Distribyte/backend/routes"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,8 @@ func main() {
 	database.ConnectDatabase()
 
 	router := gin.Default()
+
+	router.Use(cors.Default())
 
 	routes.SetupRoutes(router)
 
