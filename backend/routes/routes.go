@@ -18,6 +18,8 @@ func SetupRoutes(router *gin.Engine) {
 
 	router.GET("/files", handlers.GetFiles)
 
+	router.GET("/deleted-files", handlers.GetDeletedFiles)
+
 	router.GET("/download/:id", handlers.DownloadFile)
 
 	router.DELETE("/files/:id", handlers.DeleteFile)

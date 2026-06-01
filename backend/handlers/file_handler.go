@@ -6,6 +6,7 @@ import (
 
 	"log"
 	"os"
+	"strconv"
 
 	"Distribyte/backend/config"
 	"Distribyte/backend/database"
@@ -66,22 +67,51 @@ func UploadFile(c *gin.Context) {
 
 	hash, err := utils.GenerateSHA256(savePath)
 
-	exists, err := services.HashExists(hash)
-
-	if exists {
-		os.Remove(savePath)
-		c.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"error":   "Duplicate file detected",
-		})
-		return
-	}
+	existingFile, found, err := services.GetFileByHash(hash)
 
 	if err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Duplicate check failed",
 		})
+
+		return
+	}
+
+	if found {
+
+		os.Remove(savePath)
+
+		if existingFile.IsDeleted {
+
+			err = services.RestoreFile(
+				strconv.Itoa(existingFile.ID),
+			)
+
+			if err != nil {
+
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"success": false,
+					"error":   "Failed to restore existing file",
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"message": "Existing deleted file restored",
+			})
+
+			return
+		}
+
+		c.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"error":   "Duplicate file detected",
+		})
+
 		return
 	}
 
@@ -163,6 +193,26 @@ func GetFiles(c *gin.Context) {
 		}
 
 		files = append(files, file)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"files":   files,
+	})
+}
+
+func GetDeletedFiles(c *gin.Context) {
+
+	files, err := services.GetDeletedFiles()
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch deleted files",
+		})
+
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

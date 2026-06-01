@@ -3,6 +3,7 @@ package services
 import (
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
+	"database/sql"
 	"errors"
 )
 
@@ -103,6 +104,52 @@ func GetFileByID(id string) (models.File, error) {
 	return file, err
 }
 
+func GetFileByHash(hash string) (models.File, bool, error) {
+
+	var file models.File
+
+	query := `
+	SELECT
+		id,
+		original_name,
+		stored_name,
+		filepath,
+		size,
+		file_hash,
+		uploaded_at,
+		is_deleted,
+		deleted_at
+	FROM files
+	WHERE file_hash = $1
+	LIMIT 1
+	`
+
+	err := database.DB.QueryRow(
+		query,
+		hash,
+	).Scan(
+		&file.ID,
+		&file.OriginalName,
+		&file.StoredName,
+		&file.Filepath,
+		&file.Size,
+		&file.FileHash,
+		&file.UploadedAt,
+		&file.IsDeleted,
+		&file.DeletedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return file, false, nil
+	}
+
+	if err != nil {
+		return file, false, err
+	}
+
+	return file, true, nil
+}
+
 func DeleteFileMetadata(id string) error {
 
 	query := `
@@ -166,4 +213,56 @@ func RestoreFile(id string) error {
 	}
 
 	return nil
+}
+
+func GetDeletedFiles() ([]models.File, error) {
+
+	rows, err := database.DB.Query(`
+		SELECT
+			id,
+			original_name,
+			stored_name,
+			filepath,
+			size,
+			file_hash,
+			uploaded_at,
+			is_deleted,
+			deleted_at
+		FROM files
+		WHERE is_deleted = TRUE
+		ORDER BY deleted_at DESC
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var files []models.File
+
+	for rows.Next() {
+
+		var file models.File
+
+		err := rows.Scan(
+			&file.ID,
+			&file.OriginalName,
+			&file.StoredName,
+			&file.Filepath,
+			&file.Size,
+			&file.FileHash,
+			&file.UploadedAt,
+			&file.IsDeleted,
+			&file.DeletedAt,
+		)
+
+		if err != nil {
+			continue
+		}
+
+		files = append(files, file)
+	}
+
+	return files, nil
 }

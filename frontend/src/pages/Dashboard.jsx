@@ -5,6 +5,21 @@ import UploadForm from "../components/UploadForm";
 function Dashboard() {
   const [files, setFiles] = useState([]);
 
+  const handleDelete = async (id) => {
+        try {
+            await api.delete(`/files/${id}`);
+
+            alert("File deleted successfully");
+
+            fetchFiles();
+        } catch (error) {
+            alert(
+            error.response?.data?.error ||
+            "Delete failed"
+            );
+        }
+    };
+
   const fetchFiles = async () => {
     try {
       const response = await api.get("/files");
@@ -29,9 +44,26 @@ function Dashboard() {
 
       {files.map((file) => (
         <div key={file.id}>
-          <p>{file.original_name}</p>
-        </div>
-      ))}
+                <span>{file.original_name}</span>
+
+                <button
+                onClick={() =>
+                    window.open(
+                    `http://localhost:8080/download/${file.id}`,
+                    "_blank"
+                    )
+                }
+                >
+                Download
+                </button>
+
+                <button
+                onClick={() => handleDelete(file.id)}
+                >
+                Delete
+                </button>
+            </div>
+        ))}
 
     </div>
   );
