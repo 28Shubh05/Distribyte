@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"net/http"
-	"path/filepath"
-
+	"encoding/json"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"Distribyte/backend/config"
 	"Distribyte/backend/database"
@@ -99,6 +100,8 @@ func UploadFile(c *gin.Context) {
 				return
 			}
 
+			services.ClearFileCaches()
+
 			c.JSON(http.StatusOK, gin.H{
 				"success": true,
 				"message": "Existing deleted file restored",
@@ -137,6 +140,8 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	services.ClearFileCaches()
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "File uploaded successfully",
@@ -148,25 +153,53 @@ func UploadFile(c *gin.Context) {
 
 func GetFiles(c *gin.Context) {
 
+	cachedFiles, err := database.RedisClient.Get(
+		database.Ctx,
+		"files:list",
+	).Result()
+
+	if err == nil {
+
+		log.Println("CACHE HIT: files:list")
+
+		var files []models.File
+
+		json.Unmarshal(
+			[]byte(cachedFiles),
+			&files,
+		)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"files":   files,
+		})
+
+		return
+	}
+
+	log.Println("CACHE MISS: files:list")
+
 	rows, err := database.DB.Query(`
-    	SELECT
-    	    id,
-    	    original_name,
-    	    stored_name,
-    	    filepath,
-    	    size,
-    	    file_hash,
-    	    uploaded_at
-    	FROM files
+		SELECT
+			id,
+			original_name,
+			stored_name,
+			filepath,
+			size,
+			file_hash,
+			uploaded_at
+		FROM files
 		WHERE is_deleted = FALSE
-    	ORDER BY uploaded_at DESC
+		ORDER BY uploaded_at DESC
 	`)
 
 	if err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to fetch files",
 		})
+
 		return
 	}
 
@@ -195,6 +228,15 @@ func GetFiles(c *gin.Context) {
 		files = append(files, file)
 	}
 
+	jsonData, _ := json.Marshal(files)
+
+	database.RedisClient.Set(
+		database.Ctx,
+		"files:list",
+		jsonData,
+		5*time.Minute,
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"files":   files,
@@ -202,6 +244,32 @@ func GetFiles(c *gin.Context) {
 }
 
 func GetDeletedFiles(c *gin.Context) {
+
+	cachedFiles, err := database.RedisClient.Get(
+		database.Ctx,
+		"deleted_files:list",
+	).Result()
+
+	if err == nil {
+
+		log.Println("CACHE HIT: deleted_files:list")
+
+		var files []models.File
+
+		json.Unmarshal(
+			[]byte(cachedFiles),
+			&files,
+		)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"files":   files,
+		})
+
+		return
+	}
+
+	log.Println("CACHE MISS: deleted_files:list")
 
 	files, err := services.GetDeletedFiles()
 
@@ -214,6 +282,15 @@ func GetDeletedFiles(c *gin.Context) {
 
 		return
 	}
+
+	jsonData, _ := json.Marshal(files)
+
+	database.RedisClient.Set(
+		database.Ctx,
+		"deleted_files:list",
+		jsonData,
+		5*time.Minute,
+	)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -267,6 +344,8 @@ func DeleteFile(c *gin.Context) {
 		return
 	}
 
+	services.ClearFileCaches()
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "File deleted successfully",
@@ -288,6 +367,8 @@ func RestoreFile(c *gin.Context) {
 
 		return
 	}
+
+	services.ClearFileCaches()
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

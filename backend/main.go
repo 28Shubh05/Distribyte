@@ -14,6 +14,7 @@ func main() {
 	config.LoadEnv()
 
 	database.ConnectDatabase()
+	database.ConnectRedis()
 
 	router := gin.Default()
 
