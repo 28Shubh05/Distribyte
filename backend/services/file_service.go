@@ -13,17 +13,19 @@ func SaveFileMetadata(
 	savePath string,
 	size int64,
 	fileHash string,
+	userID int,
 ) (models.File, error) {
 
 	query := `
-		INSERT INTO files (
-    	original_name,
-    	stored_name,
-    	filepath,
-    	size,
-    	file_hash
+		INSERT INTO files(
+		original_name,
+		stored_name,
+		filepath,
+		size,
+		file_hash,
+		user_id
 	)
-	VALUES ($1,$2,$3,$4,$5)
+	VALUES($1,$2,$3,$4,$5,$6)
 	RETURNING id, uploaded_at
 	`
 
