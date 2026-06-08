@@ -367,3 +367,15 @@ Restore Previously Deleted File
 * Prometheus Integration
 
 ---
+
+## Author
+
+Shubham Sharma
+
+Built as a distributed systems and cloud storage project using Go, PostgreSQL, Redis, React, and TailwindCSS.
+
+---
+
+## License
+
+MIT License
