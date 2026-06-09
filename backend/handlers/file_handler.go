@@ -13,6 +13,7 @@ import (
 	"Distribyte/backend/config"
 	"Distribyte/backend/database"
 	"Distribyte/backend/models"
+	"Distribyte/backend/services"
 	"Distribyte/backend/utils"
 
 	"github.com/gin-gonic/gin"
@@ -55,7 +56,34 @@ func UploadFile(c *gin.Context) {
 
 	filename := filepath.Base(file.Filename)
 	storedName := utils.GenerateStoredName(filename)
-	savePath := "../storage/" + storedName
+
+	node, err := services.GetAvailableNode()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "No storage node available",
+		})
+		return
+	}
+
+	savePath := filepath.Join(
+		node.StoragePath,
+		storedName,
+	)
+
+	err = os.MkdirAll(
+		node.StoragePath,
+		os.ModePerm,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create node directory",
+		})
+		return
+	}
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -126,12 +154,26 @@ func UploadFile(c *gin.Context) {
 
 	fileData, err := insertFileMetadata(
 		userID,
+		node.ID,
 		filename,
 		storedName,
 		savePath,
 		file.Size,
 		hash,
 	)
+
+	err = services.UpdateNodeUsage(
+		node.ID,
+		file.Size,
+	)
+
+	if err != nil {
+		log.Println(
+			"Failed to update node usage:",
+			err,
+		)
+	}
+
 	if err != nil {
 		_ = os.Remove(savePath)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -236,12 +278,14 @@ func GetFiles(c *gin.Context) {
 
 	jsonData, _ := json.Marshal(files)
 
-	_ = database.RedisClient.Set(
+	if err := database.RedisClient.Set(
 		database.Ctx,
 		cacheKey,
 		jsonData,
 		5*time.Minute,
-	).Err()
+	).Err(); err != nil {
+		log.Println("REDIS SET ERROR: ", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -333,12 +377,14 @@ func GetDeletedFiles(c *gin.Context) {
 
 	jsonData, _ := json.Marshal(files)
 
-	_ = database.RedisClient.Set(
+	if err := database.RedisClient.Set(
 		database.Ctx,
 		cacheKey,
 		jsonData,
 		5*time.Minute,
-	).Err()
+	).Err(); err != nil {
+		log.Println("REDIS SET ERROR: ", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -493,6 +539,7 @@ func clearUserCaches(userID int) {
 
 func insertFileMetadata(
 	userID int,
+	nodeID int,
 	originalName string,
 	storedName string,
 	savePath string,
@@ -507,9 +554,10 @@ func insertFileMetadata(
 			filepath,
 			size,
 			file_hash,
-			user_id
+			user_id,
+			node_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, uploaded_at
 	`
 
@@ -523,6 +571,7 @@ func insertFileMetadata(
 		size,
 		fileHash,
 		userID,
+		nodeID,
 	).Scan(
 		&file.ID,
 		&file.UploadedAt,
