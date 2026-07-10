@@ -18,7 +18,9 @@ func GetAvailableNode() (models.StorageNode, error) {
 			used_space,
 			is_active
 		FROM storage_nodes
-		WHERE is_active = TRUE
+		WHERE
+			is_active = TRUE
+			AND node_type = 'PRIMARY'
 		ORDER BY used_space ASC
 		LIMIT 1
 	`
@@ -196,4 +198,46 @@ func MarkNodeOnline(
 	)
 
 	return err
+}
+
+func GetReplicaForNode(
+	primaryNodeID int,
+) (models.StorageNode, error) {
+
+	var node models.StorageNode
+
+	query := `
+		SELECT
+			sn.id,
+			sn.node_name,
+			sn.storage_path,
+			sn.total_space,
+			sn.used_space,
+			sn.is_active
+		FROM storage_nodes sn
+		INNER JOIN node_replica_mapping m
+			ON sn.id = m.replica_node_id
+		WHERE
+			m.primary_node_id = $1
+			AND sn.is_active = TRUE
+		LIMIT 1
+	`
+
+	err := database.DB.QueryRow(
+		query,
+		primaryNodeID,
+	).Scan(
+		&node.ID,
+		&node.NodeName,
+		&node.StoragePath,
+		&node.TotalSpace,
+		&node.UsedSpace,
+		&node.IsActive,
+	)
+
+	if err != nil {
+		return node, err
+	}
+
+	return node, nil
 }

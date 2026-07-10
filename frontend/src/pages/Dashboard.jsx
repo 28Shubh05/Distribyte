@@ -25,6 +25,39 @@ function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
+
+  const handleDownload = async (id, filename) => {
+    try {
+      const response = await api.get(
+        `/download/${id}`,
+        {
+          responseType: "blob",
+        }
+      );
+
+      const url = window.URL.createObjectURL(response.data);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Download started");
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        error.response?.data?.error ||
+        "Download failed"
+      );
+    }
+  };
+
   const handleDelete = async (id) => {
     try {
       await api.delete(`/files/${id}`);
@@ -309,10 +342,7 @@ function Dashboard() {
                 <div className="flex gap-2 mt-auto">
                   <button
                     onClick={() =>
-                      window.open(
-                        `http://localhost:8080/download/${file.id}`,
-                        "_blank"
-                      )
+                      handleDownload(file.id, file.original_name)
                     }
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
                   >
@@ -324,7 +354,8 @@ function Dashboard() {
                     onClick={() =>
                       handleDelete(file.id)
                     }
-                    className="px-4 py-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                    className
+                    ="px-4 py-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

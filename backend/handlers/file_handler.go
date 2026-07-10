@@ -183,6 +183,107 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	// Update primary node usage
+	err = services.UpdateNodeUsage(
+		node.ID,
+		file.Size,
+	)
+
+	if err != nil {
+		log.Println(
+			"Failed to update primary node usage:",
+			err,
+		)
+	}
+
+	// Get dedicated replica node
+	replicaNode, err := services.GetReplicaForNode(
+		node.ID,
+	)
+
+	if err != nil {
+
+		log.Println(
+			"Failed to get replica node:",
+			err,
+		)
+
+	} else {
+
+		// Create replica directory
+		err = os.MkdirAll(
+			replicaNode.StoragePath,
+			os.ModePerm,
+		)
+
+		if err != nil {
+
+			log.Println(
+				"Failed creating replica directory:",
+				err,
+			)
+
+		} else {
+
+			replicaPath := filepath.Join(
+				replicaNode.StoragePath,
+				storedName,
+			)
+
+			// Copy file to replica node
+			err = services.CopyFile(
+				savePath,
+				replicaPath,
+			)
+
+			if err != nil {
+
+				log.Println(
+					"Replica copy failed:",
+					err,
+				)
+
+			} else {
+
+				// Save replica metadata
+				err = services.SaveReplica(
+					fileData.ID,
+					replicaNode.ID,
+					replicaPath,
+				)
+
+				if err != nil {
+
+					log.Println(
+						"Failed saving replica metadata:",
+						err,
+					)
+
+				} else {
+
+					// Update replica node usage
+					err = services.UpdateNodeUsage(
+						replicaNode.ID,
+						file.Size,
+					)
+
+					if err != nil {
+
+						log.Println(
+							"Failed updating replica node usage:",
+							err,
+						)
+					}
+
+					log.Println(
+						"Replica stored on:",
+						replicaNode.NodeName,
+					)
+				}
+			}
+		}
+	}
+
 	clearUserCaches(userID)
 
 	c.JSON(http.StatusOK, gin.H{
