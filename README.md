@@ -341,9 +341,9 @@ Restore Previously Deleted File
 
 ---
 
-## Future Roadmap
+## Important Phases of the project - 
 
-### Phase 7
+### Phase A
 
 * Distributed Storage Nodes
 * Node Registration
@@ -351,7 +351,7 @@ Restore Previously Deleted File
 * Health Checks
 * Storage Balancing
 
-### Phase 8
+### Phase B
 
 * Docker Deployment
 * Kubernetes Support
@@ -359,7 +359,7 @@ Restore Previously Deleted File
 * File Sharing
 * Role Based Access Control
 
-### Phase 9
+### Phase C
 
 * Monitoring Dashboard
 * Metrics & Analytics
